@@ -4,6 +4,8 @@
 
 #define MAX_BIKES 500
 #define MAX_SHOWROOMS 100
+#define MAX_NAME_LEN 50
+#define MAX_PASS_LEN 50
 
 typedef struct {
     char model[50];
@@ -22,6 +24,9 @@ typedef struct {
 void displayMainMenu();
 void displayAdminMenu();
 void displayUserMenu();
+int authenticateAdmin();
+void addAdmin();
+void deleteAdmin();
 void addBike();
 void showBikes();
 void addShowroom();
@@ -44,18 +49,30 @@ int main() {
         getchar(); 
         switch (choice) {
             case 1:
-                while (1) {
-                    displayAdminMenu();
-                    printf("Enter choice: ");
-                    scanf("%d", &choice);
-                    getchar();
-                    if (choice == 1) { addBike(); saveBikesToFile(); }
-                    else if (choice == 2) showBikes();
-                    else if (choice == 3) { addShowroom(); saveShowroomsToFile(); }
-                    else if (choice == 4) showShowrooms();
-                    else if (choice == 5) break;
-                    else printf("Invalid choice.\n");
-                }
+                if (authenticateAdmin())
+                    {
+                        while (1)
+                        {
+                        displayAdminMenu();
+                        printf("Enter choice: ");
+                        scanf("%d", &choice);
+                        getchar();
+                        if (choice == 1) { addBike(); saveBikesToFile(); }
+                        else if (choice == 2) showBikes();
+                        else if (choice == 3) { addShowroom(); saveShowroomsToFile(); }
+                        else if (choice == 4) showShowrooms();
+                        else if (choice == 5) addAdmin();
+                        else if (choice == 6) deleteAdmin();
+                        else if (choice == 7) break;
+                        else printf("Invalid choice.\n");
+                        }
+                    }
+                    else{
+                        printf("Username or password is incorrect.\n");
+                    }
+                    
+                
+                
                 break;
             case 2:
                 while (1) {
@@ -82,7 +99,7 @@ void displayMainMenu() {
     printf("\n1. Admin\n2. User\n");
 }
 void displayAdminMenu() {
-    printf("\n1. Add Bike\n2. Show Bikes\n3. Add Showroom\n4. Show Showrooms\n5. Exit\n");
+    printf("\n1. Add Bike\n2. Show Bikes\n3. Add Showroom\n4. Show Showrooms\n5. Add Admin\n6. Delete Admin\n7. Exit\n");
 }
 void displayUserMenu() {
     printf("\n1. Show Showrooms\n2. Show Bikes\n3. Search Bike\n4. Search Showroom\n5. Exit\n");
@@ -225,6 +242,96 @@ void searchShowroom() {
     }
     if (!found) printf("Showroom not found.\n");
     fclose(file);
+}
+
+// Function to add a new admin
+void addAdmin() {
+    FILE *file = fopen("admins.txt", "a");
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    char username[MAX_NAME_LEN];
+    char password[MAX_PASS_LEN];
+
+    printf("Enter new admin username: ");
+    scanf("%s", username);
+    printf("Enter new admin password: ");
+    scanf("%s", password);
+
+    fprintf(file, "%s %s\n", username, password);
+    fclose(file);
+    printf("Admin added successfully!\n");
+}
+
+// Function to delete an admin
+void deleteAdmin() {
+    char username[MAX_NAME_LEN];
+    printf("Enter admin username to delete: ");
+    scanf("%s", username);
+
+    FILE *file = fopen("admins.txt", "r");
+    FILE *temp = fopen("temp.txt", "w");
+
+    if (file == NULL || temp == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    char fileUsername[MAX_NAME_LEN];
+    char filePassword[MAX_PASS_LEN];
+    int found = 0;
+
+    while (fscanf(file, "%s %s", fileUsername, filePassword) != EOF) {
+        if (strcmp(fileUsername, username) != 0) {
+            fprintf(temp, "%s %s\n", fileUsername, filePassword);
+        } else {
+            found = 1;
+        }
+    }
+
+    fclose(file);
+    fclose(temp);
+
+    remove("admins.txt");
+    rename("temp.txt", "admins.txt");
+
+    if (found) {
+        printf("Admin deleted successfully!\n");
+    } else {
+        printf("Admin not found!\n");
+    }
+}
+
+// Admin authentication
+int authenticateAdmin() {
+    char username[MAX_NAME_LEN];
+    char password[MAX_PASS_LEN];
+
+    printf("Enter admin username: ");
+    scanf("%s", username);
+    printf("Enter admin password: ");
+    scanf("%s", password);
+
+    FILE *file = fopen("admins.txt", "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        return 0;
+    }
+
+    char fileUsername[MAX_NAME_LEN];
+    char filePassword[MAX_PASS_LEN];
+
+    while (fscanf(file, "%s %s", fileUsername, filePassword) != EOF) {
+        if (strcmp(fileUsername, username) == 0 && strcmp(filePassword, password) == 0) {
+            fclose(file);
+            return 1; // Authentication successful
+        }
+    }
+
+    fclose(file);
+    return 0; // Authentication failed
 }
 
 void saveBikesToFile() {
